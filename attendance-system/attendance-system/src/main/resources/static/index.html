@@ -1,0 +1,572 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Room Attendance</title>
+<style>
+:root{
+  --bg:#f3f5f8; --card:#fff; --ink:#17212b; --muted:#5b6876; --line:#dfe5ec;
+  --brand:#2447c8;
+  --present:#1a8f4c; --present-bg:#e4f5ec;
+  --absent:#d23f3f;  --absent-bg:#fbe9e9;
+  --late:#b86e00;    --late-bg:#fdf1dc;
+  --none-bg:#eef1f5;
+  --radius:12px;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+.top{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:12px 20px;background:var(--card);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:5}
+.brand{font-weight:700;letter-spacing:.2px}
+#who{display:flex;align-items:center;gap:12px;font-size:14px;color:var(--muted)}
+main{max-width:1000px;margin:0 auto;padding:20px 16px 60px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:20px;margin-bottom:16px}
+h1{font-size:22px;margin:0 0 4px}
+h2{font-size:17px;margin:0 0 12px}
+.muted{color:var(--muted);margin:0}
+.row{display:flex;gap:12px;align-items:center}
+.between{justify-content:space-between}
+.wrap{flex-wrap:wrap}
+.btn{font:inherit;min-height:40px;padding:0 16px;border:1px solid var(--line);background:#fff;color:var(--ink);border-radius:10px;cursor:pointer}
+.btn:hover{background:#f6f8fb}
+.btn.primary{background:var(--brand);border-color:var(--brand);color:#fff}
+.btn.primary:hover{background:#1c3aa3}
+.btn:focus-visible,.seg button:focus-visible,.chip:focus-visible,.tab:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid #9db4ff;outline-offset:2px}
+label{display:block;font-size:14px;color:var(--muted);margin-bottom:12px}
+input,select{display:block;width:100%;margin-top:4px;min-height:40px;padding:0 10px;font:inherit;color:var(--ink);background:#fff;border:1px solid #c9d2dc;border-radius:8px}
+label.inline{display:flex;align-items:center;gap:8px;margin:0}
+label.inline input,label.inline select{margin:0;width:auto}
+.err{color:var(--absent);min-height:1.4em;margin:8px 0 0;font-size:14px}
+.login{max-width:380px;margin:40px auto}
+.login .btn{width:100%}
+
+.tabs{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap}
+.tab{font:inherit;min-height:42px;padding:0 18px;border:1px solid var(--line);background:#fff;border-radius:999px;cursor:pointer;color:var(--ink)}
+.tab[aria-selected=true]{background:var(--brand);border-color:var(--brand);color:#fff;font-weight:600}
+
+.chips{display:flex;gap:8px;flex-wrap:wrap;margin:16px 0}
+.chip{font:inherit;min-height:42px;padding:0 16px;border:1px solid #c9d2dc;background:#fff;border-radius:10px;cursor:pointer;color:var(--ink)}
+.chip small{color:var(--muted);margin-left:4px}
+.chip.on{border-color:var(--brand);background:#eaf0ff;font-weight:600}
+
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:12px;margin:16px 0}
+.tile{border:1px solid var(--line);border-radius:10px;padding:10px 12px;background:#fff}
+.tile b{display:block;font-size:26px;line-height:1.1;font-variant-numeric:tabular-nums}
+.tile span{font-size:13px;color:var(--muted)}
+.tile.present{border-left:5px solid var(--present)}
+.tile.absent{border-left:5px solid var(--absent)}
+.tile.late{border-left:5px solid var(--late)}
+.tile.none{border-left:5px solid #9aa6b2}
+
+.tablewrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:15px}
+th,td{padding:10px 12px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+th{font-size:13px;color:var(--muted);font-weight:600;white-space:nowrap}
+.num{text-align:right;font-variant-numeric:tabular-nums}
+tr.has-absent td:first-child{box-shadow:inset 4px 0 0 var(--absent)}
+tr.total td{font-weight:700;background:#f8fafc}
+
+.people{list-style:none;margin:12px 0 0;padding:0}
+.person{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;padding:12px 0;border-bottom:1px solid var(--line)}
+.person .who{display:flex;flex-direction:column;min-width:160px}
+.seg{display:flex;border:1px solid #c9d2dc;border-radius:10px;overflow:hidden}
+.seg button{font:inherit;min-height:44px;min-width:88px;padding:0 14px;border:0;border-right:1px solid #c9d2dc;background:#fff;color:var(--ink);cursor:pointer}
+.seg button:last-child{border-right:0}
+.seg button:hover{background:#f3f6fa}
+.seg button.present[aria-pressed=true]{background:var(--present);color:#fff;font-weight:700}
+.seg button.absent[aria-pressed=true]{background:var(--absent);color:#fff;font-weight:700}
+.seg button.late[aria-pressed=true]{background:var(--late);color:#fff;font-weight:700}
+.seg button[aria-pressed=true]::before{content:"\2713\00a0"}
+
+.badge{display:inline-block;padding:2px 10px;border-radius:999px;font-size:12px;font-weight:600}
+.badge.PRESENT{background:var(--present-bg);color:var(--present)}
+.badge.ABSENT{background:var(--absent-bg);color:var(--absent)}
+.badge.LATE{background:var(--late-bg);color:var(--late)}
+.badge.NOT_MARKED{background:var(--none-bg);color:var(--muted)}
+
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px}
+.grid2 .card{margin:0}
+.live{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--present);margin-right:6px;animation:pulse 1.6s infinite}
+@keyframes pulse{0%{opacity:1}50%{opacity:.3}100%{opacity:1}}
+@media (prefers-reduced-motion:reduce){.live{animation:none}}
+
+#toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(20px);max-width:90vw;padding:12px 18px;border-radius:10px;background:#17212b;color:#fff;opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;z-index:20}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+#toast.bad{background:#a82a2a}
+
+@media print{
+  .top,.tabs,.btn,label.inline,#toast{display:none!important}
+  body{background:#fff}
+  .card{border:0;padding:0}
+}
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="brand">Room Attendance</div>
+  <div id="who"></div>
+</header>
+<main id="app"></main>
+<div id="toast" role="status" aria-live="polite"></div>
+
+<script>
+(function () {
+  'use strict';
+
+  var LABEL = { PRESENT: 'Present', ABSENT: 'Absent', LATE: 'Late', NOT_MARKED: 'Not marked' };
+  var app = document.getElementById('app');
+  var whoEl = document.getElementById('who');
+  var toastEl = document.getElementById('toast');
+  var S = {
+    auth: null, me: null, tab: 'report',
+    reportDate: '', recDate: '', recRoom: '', setupRoom: '',
+    rooms: [],
+    obs: { rooms: [], roomId: null, persons: [] }
+  };
+  var toastTimer = null;
+
+  // ---------- helpers ----------
+  function esc(v) {
+    return String(v == null ? '' : v).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+
+  function toast(msg, bad) {
+    toastEl.textContent = msg;
+    toastEl.className = 'show' + (bad ? ' bad' : '');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { toastEl.className = ''; }, 3500);
+  }
+
+  function basic(user, pass) {
+    var bytes = new TextEncoder().encode(user + ':' + pass);
+    var bin = '';
+    bytes.forEach(function (b) { bin += String.fromCharCode(b); });
+    return 'Basic ' + btoa(bin);
+  }
+
+  function todayLabel() {
+    return new Date().toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+  }
+
+  async function api(path, opts) {
+    opts = opts || {};
+    var headers = { 'Authorization': S.auth, 'X-Requested-With': 'XMLHttpRequest' };
+    if (opts.body) headers['Content-Type'] = 'application/json';
+    var res;
+    try {
+      res = await fetch(path, {
+        method: opts.method || 'GET',
+        headers: headers,
+        body: opts.body ? JSON.stringify(opts.body) : undefined
+      });
+    } catch (e) {
+      throw new Error('Cannot reach the server. Is the application running?');
+    }
+    if (res.status === 401) {
+      signOut('Your session ended. Please sign in again.');
+      throw new Error('Signed out');
+    }
+    if (!res.ok) {
+      var msg = 'Request failed (' + res.status + ')';
+      try { var j = await res.json(); if (j && j.message) msg = j.message; } catch (e) { /* no body */ }
+      throw new Error(msg);
+    }
+    if (opts.raw) return res;
+    var text = await res.text();
+    return text ? JSON.parse(text) : null;
+  }
+
+  function showError(e, silent) {
+    if (!silent && e && e.message !== 'Signed out') toast(e.message, true);
+  }
+
+  // ---------- login / logout ----------
+  function viewLogin(msg) {
+    whoEl.innerHTML = '';
+    app.innerHTML =
+      '<section class="card login">' +
+      '<h1>Sign in</h1>' +
+      '<p class="muted" style="margin-bottom:16px">Use your Admin or Observer account</p>' +
+      '<form data-form="login">' +
+      '<label>Username<input name="username" autocomplete="username" required autofocus></label>' +
+      '<label>Password<input name="password" type="password" autocomplete="current-password" required></label>' +
+      '<button class="btn primary" type="submit">Sign in</button>' +
+      '<p class="err" id="loginErr">' + esc(msg || '') + '</p>' +
+      '</form></section>';
+  }
+
+  function signOut(msg) {
+    S.auth = null; S.me = null;
+    sessionStorage.removeItem('auth');
+    viewLogin(msg || '');
+  }
+
+  async function doLogin(username, password) {
+    var auth = basic(username, password);
+    var res;
+    try {
+      res = await fetch('/api/me', { headers: { 'Authorization': auth, 'X-Requested-With': 'XMLHttpRequest' } });
+    } catch (e) {
+      throw new Error('Cannot reach the server. Is the application running?');
+    }
+    if (res.status === 401) throw new Error('Wrong username or password');
+    if (!res.ok) throw new Error('Server error (' + res.status + ')');
+    S.me = await res.json();
+    S.auth = auth;
+    sessionStorage.setItem('auth', auth);
+    start();
+  }
+
+  function start() {
+    whoEl.innerHTML = '<span>' + esc(S.me.fullName) + ' &middot; ' + (S.me.role === 'ADMIN' ? 'Admin' : 'Observer') +
+      '</span><button class="btn" data-action="logout">Sign out</button>';
+    if (S.me.role === 'ADMIN') { S.tab = 'report'; viewAdmin(); } else { viewObserver(); }
+  }
+
+  // ---------- observer ----------
+  async function viewObserver() {
+    app.innerHTML = '<p class="muted">Loading...</p>';
+    try {
+      S.obs.rooms = await api('/api/observer/rooms');
+      if (!S.obs.rooms.length) {
+        app.innerHTML = '<section class="card"><h1>No rooms assigned</h1>' +
+          '<p class="muted">Ask the admin to assign you to a room, then sign in again.</p></section>';
+        return;
+      }
+      var ids = S.obs.rooms.map(function (r) { return r.id; });
+      if (ids.indexOf(S.obs.roomId) < 0) S.obs.roomId = ids[0];
+      await loadObsRoom();
+    } catch (e) { showError(e); }
+  }
+
+  async function loadObsRoom() {
+    S.obs.persons = await api('/api/observer/rooms/' + S.obs.roomId + '/persons');
+    paintObserver();
+  }
+
+  function obsCount(st) {
+    return S.obs.persons.filter(function (p) { return p.status === st; }).length;
+  }
+
+  function obsStatsHtml() {
+    return '<div class="tiles">' +
+      '<div class="tile present"><b>' + obsCount('PRESENT') + '</b><span>Present</span></div>' +
+      '<div class="tile absent"><b>' + obsCount('ABSENT') + '</b><span>Absent</span></div>' +
+      '<div class="tile late"><b>' + obsCount('LATE') + '</b><span>Late</span></div>' +
+      '<div class="tile none"><b>' + obsCount('NOT_MARKED') + '</b><span>Not marked</span></div>' +
+      '</div>';
+  }
+
+  function obsRowsHtml() {
+    if (!S.obs.persons.length) return '<li class="muted" style="padding:12px 0">No persons in this room yet.</li>';
+    return S.obs.persons.map(function (p) {
+      function btn(st, cls) {
+        return '<button class="' + cls + '" data-action="mark" data-status="' + st + '" aria-pressed="' + (p.status === st) + '">' +
+          LABEL[st] + '</button>';
+      }
+      return '<li class="person" data-id="' + p.personId + '">' +
+        '<div class="who"><strong>' + esc(p.fullName) + '</strong>' +
+        '<span class="muted">' + esc(p.personCode) +
+        (p.status === 'NOT_MARKED' ? ' &middot; <span class="badge NOT_MARKED">Not marked</span>' : '') + '</span></div>' +
+        '<div class="seg" role="group" aria-label="Attendance for ' + esc(p.fullName) + '">' +
+        btn('PRESENT', 'present') + btn('ABSENT', 'absent') + btn('LATE', 'late') + '</div></li>';
+    }).join('');
+  }
+
+  function paintObserver() {
+    var chips = S.obs.rooms.map(function (r) {
+      return '<button class="chip' + (r.id === S.obs.roomId ? ' on' : '') + '" data-action="pickRoom" data-id="' + r.id + '">' +
+        'Room ' + esc(r.roomNo) + '<small>' + r.personCount + ' persons</small></button>';
+    }).join('');
+    app.innerHTML =
+      '<section class="card">' +
+      '<div class="row between wrap"><div><h1>Mark attendance</h1>' +
+      '<p class="muted">' + esc(todayLabel()) + ' &middot; marks are saved for today</p></div>' +
+      '<div class="row wrap"><button class="btn" data-action="reloadRoom">Refresh</button>' +
+      '<button class="btn" data-action="allPresent">Mark all unmarked as Present</button></div></div>' +
+      '<div class="chips">' + chips + '</div>' +
+      '<div id="obsStats">' + obsStatsHtml() + '</div>' +
+      '<ul class="people" id="obsPeople">' + obsRowsHtml() + '</ul></section>';
+  }
+
+  function refreshObs() {
+    var s = document.getElementById('obsStats');
+    var p = document.getElementById('obsPeople');
+    if (s) s.innerHTML = obsStatsHtml();
+    if (p) p.innerHTML = obsRowsHtml();
+  }
+
+  async function markOne(personId, status) {
+    await api('/api/observer/attendance', { method: 'POST', body: { personId: personId, status: status } });
+    var p = S.obs.persons.filter(function (x) { return x.personId === personId; })[0];
+    if (p) { p.status = status; toast(p.fullName + ' marked ' + LABEL[status]); }
+    refreshObs();
+  }
+
+  async function markAllPresent() {
+    var todo = S.obs.persons.filter(function (p) { return p.status === 'NOT_MARKED'; });
+    if (!todo.length) { toast('Everyone in this room is already marked'); return; }
+    await api('/api/observer/attendance/bulk', {
+      method: 'POST',
+      body: { entries: todo.map(function (p) { return { personId: p.personId, status: 'PRESENT' }; }) }
+    });
+    todo.forEach(function (p) { p.status = 'PRESENT'; });
+    refreshObs();
+    toast(todo.length + ' marked Present');
+  }
+
+  // ---------- admin ----------
+  function viewAdmin() {
+    var tabs = [['report', 'Live report'], ['records', 'Who marked what'], ['setup', 'Setup']];
+    app.innerHTML = '<nav class="tabs" role="tablist">' + tabs.map(function (t) {
+      return '<button class="tab" role="tab" aria-selected="' + (S.tab === t[0]) + '" data-action="tab" data-tab="' + t[0] + '">' + t[1] + '</button>';
+    }).join('') + '</nav><div id="panel"></div>';
+    if (S.tab === 'report') loadReport();
+    else if (S.tab === 'records') loadRecords();
+    else loadSetup();
+  }
+
+  async function loadReport(silent) {
+    var r;
+    try {
+      r = await api('/api/admin/reports/attendance' + (S.reportDate ? '?date=' + encodeURIComponent(S.reportDate) : ''));
+    } catch (e) { showError(e, silent); return; }
+    if (S.tab !== 'report') return;
+    var panel = document.getElementById('panel');
+    if (!panel) return;
+    S.reportDate = r.date;
+
+    if (!document.getElementById('reportBody')) {
+      panel.innerHTML =
+        '<section class="card">' +
+        '<div class="row between wrap"><div><h1>Attendance report</h1>' +
+        '<p class="muted"><span class="live"></span>Live &middot; refreshes every 5 seconds</p></div>' +
+        '<div class="row wrap"><label class="inline">Date <input type="date" id="reportDate" value="' + esc(r.date) + '"></label>' +
+        '<button class="btn" data-action="csv">Download CSV</button>' +
+        '<button class="btn" data-action="print">Print</button></div></div>' +
+        '<div class="tiles" id="tiles"></div>' +
+        '<div class="tablewrap"><table><thead><tr>' +
+        '<th>Room No</th><th class="num">No of persons</th><th class="num">Present</th><th class="num">Absent</th>' +
+        '<th class="num">Late</th><th class="num">Not marked</th><th>Absentees (id - name)</th></tr></thead>' +
+        '<tbody id="reportBody"></tbody></table></div></section>';
+    }
+    var di = document.getElementById('reportDate');
+    if (di && document.activeElement !== di && di.value !== r.date) di.value = r.date;
+
+    var t = r.totals;
+    document.getElementById('tiles').innerHTML =
+      '<div class="tile"><b>' + t.rooms + '</b><span>Rooms</span></div>' +
+      '<div class="tile"><b>' + t.persons + '</b><span>Persons</span></div>' +
+      '<div class="tile present"><b>' + t.present + '</b><span>Present</span></div>' +
+      '<div class="tile absent"><b>' + t.absent + '</b><span>Absent</span></div>' +
+      '<div class="tile late"><b>' + t.late + '</b><span>Late</span></div>' +
+      '<div class="tile none"><b>' + t.notMarked + '</b><span>Not marked</span></div>';
+
+    var rows = r.rooms.map(function (x) {
+      return '<tr class="' + (x.absent > 0 ? 'has-absent' : '') + '"><td><strong>' + esc(x.roomNo) + '</strong></td>' +
+        '<td class="num">' + x.totalPersons + '</td><td class="num">' + x.present + '</td>' +
+        '<td class="num">' + x.absent + '</td><td class="num">' + x.late + '</td><td class="num">' + x.notMarked + '</td>' +
+        '<td>' + (x.absentees.length ? x.absentees.map(function (a) { return esc(a); }).join('<br>') : '<span class="muted">&mdash;</span>') + '</td></tr>';
+    }).join('');
+    if (!rows) rows = '<tr><td colspan="7" class="muted">No rooms yet. Create one in the Setup tab.</td></tr>';
+    else rows += '<tr class="total"><td>Total</td><td class="num">' + t.persons + '</td><td class="num">' + t.present +
+      '</td><td class="num">' + t.absent + '</td><td class="num">' + t.late + '</td><td class="num">' + t.notMarked + '</td><td></td></tr>';
+    document.getElementById('reportBody').innerHTML = rows;
+  }
+
+  async function loadRecords(silent) {
+    try {
+      if (!S.rooms.length) S.rooms = await api('/api/admin/rooms');
+      var q = new URLSearchParams();
+      if (S.recDate) q.set('date', S.recDate);
+      if (S.recRoom) q.set('roomId', S.recRoom);
+      var qs = q.toString();
+      var rows = await api('/api/admin/attendance' + (qs ? '?' + qs : ''));
+      if (S.tab !== 'records') return;
+      var panel = document.getElementById('panel');
+      if (!panel) return;
+      if (!document.getElementById('recBody')) {
+        panel.innerHTML =
+          '<section class="card">' +
+          '<div class="row between wrap"><div><h1>Who marked what</h1>' +
+          '<p class="muted"><span class="live"></span>Every attendance row: person, room, date and observer</p></div>' +
+          '<div class="row wrap"><label class="inline">Date <input type="date" id="recDate" value="' + esc(S.recDate || S.reportDate) + '"></label>' +
+          '<label class="inline">Room <select id="recRoom"><option value="">All rooms</option>' +
+          S.rooms.map(function (r) {
+            return '<option value="' + r.id + '"' + (String(r.id) === String(S.recRoom) ? ' selected' : '') + '>' + esc(r.roomNo) + '</option>';
+          }).join('') + '</select></label></div></div>' +
+          '<div class="tablewrap"><table><thead><tr><th>Room</th><th>Person id</th><th>Name</th><th>Status</th>' +
+          '<th>Marked by (observer)</th><th>Last update</th></tr></thead><tbody id="recBody"></tbody></table></div></section>';
+      }
+      document.getElementById('recBody').innerHTML = rows.length ? rows.map(function (x) {
+        return '<tr><td>' + esc(x.roomNo) + '</td><td>' + esc(x.personCode) + '</td><td>' + esc(x.personName) + '</td>' +
+          '<td><span class="badge ' + esc(x.status) + '">' + esc(LABEL[x.status] || x.status) + '</span></td>' +
+          '<td>' + esc(x.observerName) + '</td><td>' + esc(String(x.updatedAt).replace('T', ' ')) + '</td></tr>';
+      }).join('') : '<tr><td colspan="6" class="muted">Nothing marked for this date yet.</td></tr>';
+    } catch (e) { showError(e, silent); }
+  }
+
+  function roomOptions(rooms, selected) {
+    if (!rooms.length) return '<option value="" disabled selected>Create a room first</option>';
+    return rooms.map(function (r) {
+      return '<option value="' + r.id + '"' + (String(r.id) === String(selected) ? ' selected' : '') + '>' +
+        esc(r.roomNo) + ' (' + r.personCount + '/' + r.capacity + ')</option>';
+    }).join('');
+  }
+
+  async function loadSetup() {
+    try {
+      var results = await Promise.all([api('/api/admin/rooms'), api('/api/admin/users?role=OBSERVER')]);
+      var rooms = results[0], observers = results[1];
+      S.rooms = rooms;
+      var details = await Promise.all(rooms.map(async function (r) {
+        var persons = await api('/api/admin/rooms/' + r.id + '/persons');
+        var obs = await api('/api/admin/rooms/' + r.id + '/observers');
+        return { persons: persons, observers: obs };
+      }));
+      if (S.tab !== 'setup') return;
+      var panel = document.getElementById('panel');
+      if (!panel) return;
+
+      var obsOptions = observers.length ? observers.map(function (o) {
+        return '<option value="' + o.id + '">' + esc(o.fullName) + ' (' + esc(o.username) + ')</option>';
+      }).join('') : '<option value="" disabled selected>Create an observer first</option>';
+
+      var tableRows = rooms.map(function (r, i) {
+        var d = details[i];
+        return '<tr><td><strong>' + esc(r.roomNo) + '</strong></td><td class="num">' + r.personCount + ' / ' + r.capacity + '</td>' +
+          '<td>' + (d.persons.length ? d.persons.map(function (p) { return esc(p.personCode + ' ' + p.fullName); }).join('<br>') : '<span class="muted">none</span>') + '</td>' +
+          '<td>' + (d.observers.length ? d.observers.map(function (o) { return esc(o.fullName); }).join('<br>') : '<span class="muted">none</span>') + '</td></tr>';
+      }).join('') || '<tr><td colspan="4" class="muted">No rooms yet.</td></tr>';
+
+      panel.innerHTML =
+        '<div class="grid2">' +
+        '<section class="card"><h2>1. Create an observer</h2><form data-form="createObserver">' +
+        '<label>Full name<input name="fullName" required maxlength="100"></label>' +
+        '<label>Username<input name="username" required maxlength="50" autocomplete="off"></label>' +
+        '<label>Password (min 6 characters)<input name="password" type="password" required minlength="6" autocomplete="new-password"></label>' +
+        '<button class="btn primary" type="submit">Create observer</button></form></section>' +
+
+        '<section class="card"><h2>2. Create a room</h2><form data-form="createRoom">' +
+        '<label>Room number<input name="roomNo" required maxlength="20"></label>' +
+        '<label>Number of persons allowed (capacity)<input name="capacity" type="number" min="1" required></label>' +
+        '<button class="btn primary" type="submit">Create room</button></form></section>' +
+
+        '<section class="card"><h2>3. Add a person to a room</h2><form data-form="addPerson">' +
+        '<label>Room<select name="roomId" required>' + roomOptions(rooms, S.setupRoom) + '</select></label>' +
+        '<label>Person id / roll number<input name="personCode" required maxlength="30"></label>' +
+        '<label>Name<input name="fullName" required maxlength="100"></label>' +
+        '<button class="btn primary" type="submit">Add person</button></form></section>' +
+
+        '<section class="card"><h2>4. Assign an observer to a room</h2><form data-form="assign">' +
+        '<label>Room<select name="roomId" required>' + roomOptions(rooms, S.setupRoom) + '</select></label>' +
+        '<label>Observer<select name="observerId" required>' + obsOptions + '</select></label>' +
+        '<button class="btn primary" type="submit">Assign observer</button></form></section>' +
+        '</div>' +
+
+        '<section class="card" style="margin-top:16px"><h2>Rooms overview</h2><div class="tablewrap"><table><thead><tr>' +
+        '<th>Room</th><th class="num">Persons / capacity</th><th>Persons</th><th>Observers</th></tr></thead>' +
+        '<tbody>' + tableRows + '</tbody></table></div></section>';
+    } catch (e) { showError(e); }
+  }
+
+  async function downloadCsv() {
+    var date = S.reportDate;
+    var res = await api('/api/admin/reports/attendance/csv' + (date ? '?date=' + encodeURIComponent(date) : ''), { raw: true });
+    var blob = await res.blob();
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'attendance-' + (date || 'today') + '.csv';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(function () { URL.revokeObjectURL(a.href); }, 1000);
+  }
+
+  // ---------- events ----------
+  document.addEventListener('click', async function (e) {
+    var el = e.target.closest('[data-action]');
+    if (!el) return;
+    var a = el.dataset.action;
+    try {
+      if (a === 'logout') signOut();
+      else if (a === 'pickRoom') { S.obs.roomId = Number(el.dataset.id); await loadObsRoom(); }
+      else if (a === 'reloadRoom') { await loadObsRoom(); toast('Refreshed'); }
+      else if (a === 'mark') await markOne(Number(el.closest('.person').dataset.id), el.dataset.status);
+      else if (a === 'allPresent') await markAllPresent();
+      else if (a === 'tab') { S.tab = el.dataset.tab; viewAdmin(); }
+      else if (a === 'csv') await downloadCsv();
+      else if (a === 'print') window.print();
+    } catch (err) { showError(err); }
+  });
+
+  document.addEventListener('change', function (e) {
+    var t = e.target;
+    if (t.id === 'reportDate') { S.reportDate = t.value; loadReport(); }
+    else if (t.id === 'recDate') { S.recDate = t.value; loadRecords(); }
+    else if (t.id === 'recRoom') { S.recRoom = t.value; loadRecords(); }
+  });
+
+  document.addEventListener('submit', async function (e) {
+    var form = e.target.closest('form[data-form]');
+    if (!form) return;
+    e.preventDefault();
+    var f = {};
+    new FormData(form).forEach(function (v, k) { f[k] = v; });
+    var kind = form.dataset.form;
+    try {
+      if (kind === 'login') {
+        await doLogin(f.username.trim(), f.password);
+      } else if (kind === 'createObserver') {
+        await api('/api/admin/users', { method: 'POST', body: { username: f.username.trim(), password: f.password, fullName: f.fullName.trim(), role: 'OBSERVER' } });
+        toast('Observer created'); await loadSetup();
+      } else if (kind === 'createRoom') {
+        await api('/api/admin/rooms', { method: 'POST', body: { roomNo: f.roomNo.trim(), capacity: Number(f.capacity) } });
+        toast('Room created'); await loadSetup();
+      } else if (kind === 'addPerson') {
+        S.setupRoom = f.roomId;
+        await api('/api/admin/rooms/' + f.roomId + '/persons', { method: 'POST', body: { personCode: f.personCode.trim(), fullName: f.fullName.trim() } });
+        toast('Person added'); await loadSetup();
+      } else if (kind === 'assign') {
+        S.setupRoom = f.roomId;
+        await api('/api/admin/rooms/' + f.roomId + '/observers/' + f.observerId, { method: 'POST' });
+        toast('Observer assigned'); await loadSetup();
+      }
+    } catch (err) {
+      if (kind === 'login') {
+        var box = document.getElementById('loginErr');
+        if (box) box.textContent = err.message;
+      } else {
+        showError(err);
+      }
+    }
+  });
+
+  // live refresh for the admin screens
+  setInterval(function () {
+    if (!S.me || S.me.role !== 'ADMIN' || document.hidden) return;
+    if (S.tab === 'report') loadReport(true);
+    else if (S.tab === 'records') loadRecords(true);
+  }, 5000);
+
+  // ---------- start ----------
+  (async function init() {
+    var saved = sessionStorage.getItem('auth');
+    if (!saved) { viewLogin(); return; }
+    try {
+      var res = await fetch('/api/me', { headers: { 'Authorization': saved, 'X-Requested-With': 'XMLHttpRequest' } });
+      if (!res.ok) throw new Error('expired');
+      S.me = await res.json();
+      S.auth = saved;
+      start();
+    } catch (e) {
+      sessionStorage.removeItem('auth');
+      viewLogin();
+    }
+  })();
+})();
+</script>
+</body>
+</html>
